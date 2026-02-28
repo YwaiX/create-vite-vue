@@ -1,0 +1,28 @@
+{
+  "name": "create-vite-vue",
+  "version": "1.4.0",
+  "description": "基于Vite+Vue3创建基础项目模板",
+  "main": "index.js",
+  "author": "YwaiX",
+  "homepage": "https://blog.csdn.net/Y_3405230389?type=blog",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "create-vite-vue": "bin/index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "vite",
+    "vue",
+    "js",
+    "ts",
+    "vue-router",
+    "pinia",
+    "axios"
+  ],
+  "dependencies": {
+    "prompts": "^2.4.2"
+  }
+}
