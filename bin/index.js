@@ -5,6 +5,32 @@ import path from 'path'
 import prompts from 'prompts'
 import { fileURLToPath } from 'url'
 
+// 检测 Node 版本
+const requiredVersion = '22.19.0'
+
+function compareVersion (v1, v2) {
+  const a = v1.split('.').map(Number)
+  const b = v2.split('.').map(Number)
+
+  for(let i = 0; i < Math.max(a.length, b.length); i++) {
+    const n1 = a[i] || 0
+    const n2 = b[i] || 0
+    if(n1 > n2) return 1
+    if(n1 < n2) return -1
+  }
+  return 0
+}
+
+const currentVersion = process.version.replace('v', '')
+
+if(compareVersion(currentVersion, requiredVersion) < 0) {
+  console.error(`❌ Node.js 版本过低`)
+  console.error(`当前版本: ${currentVersion}`)
+  console.error(`最低要求: ${requiredVersion}`)
+  console.error(`请升级 Node.js 后再运行`)
+  process.exit(1)
+}
+
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
@@ -42,37 +68,36 @@ const __dirname = path.dirname(__filename)
       ]
     })
 
-    // 2️⃣ 功能选择
-    const features = await prompts([
-      {
-        type: 'select',
-        name: 'router',
-        message: '是否使用 vue-router？',
-        choices: [{ title: 'Yes', value: true }, { title: 'No', value: false }]
-      },
-      {
-        type: 'select',
-        name: 'pinia',
-        message: '是否使用 Pinia（含持久化）？',
-        choices: [{ title: 'Yes', value: true }, { title: 'No', value: false }]
-      },
-      {
-        type: 'select',
-        name: 'axios',
-        message: '是否使用 Axios？',
-        choices: [{ title: 'Yes', value: true }, { title: 'No', value: false }]
-      },
-      {
-        type: 'select',
-        name: 'ui',
-        message: '请选择 UI 框架',
-        choices: [
-          { title: 'Element Plus（PC）', value: 'element' },
-          { title: 'Vant（Mobile）', value: 'vant' },
-          { title: '不使用 UI 框架', value: 'none' }
-        ]
-      }
-    ])
+    // 2️⃣ 功能选择（多选）
+    const { featureList } = await prompts({
+      type: 'multiselect',
+      name: 'featureList',
+      message: '请选择基础功能（↑↓选择，空格确认，回车完成）',
+      instructions: false,
+      choices: [
+        { title: 'Vue Router', value: 'router' },
+        { title: 'Pinia（含持久化）', value: 'pinia' },
+        { title: 'Axios', value: 'axios' },
+        { title: 'Element Plus（PC UI）', value: 'element' },
+        { title: 'Vant（Mobile UI）', value: 'vant' },
+        { title: 'VueUse（实用 Composition API）', value: 'vueuse' },
+        { title: 'Lodash（工具库）', value: 'lodash' },
+        { title: 'Day.js（日期处理）', value: 'dayjs' },
+        { title: 'Tailwind CSS（原子化 CSS）', value: 'tailwind' }
+      ]
+    })
+
+    // 转换成原来的结构（保证后面代码基本不用动）
+    const features = {
+      router: featureList?.includes('router') || false,
+      pinia: featureList?.includes('pinia') || false,
+      axios: featureList?.includes('axios') || false,
+      ui: featureList?.filter(v => ['element', 'vant'].includes(v)) || []
+    }
+
+    const extraPlugins = featureList?.filter(v =>
+      ['vueuse', 'lodash', 'dayjs', 'tailwind'].includes(v)
+    ) || []
 
     // 询问是否开启自动路由
     let autoRoute = false
@@ -87,40 +112,6 @@ const __dirname = path.dirname(__filename)
       })
       autoRoute = enableAutoRoute
     }
-
-    // ========== 新增：增强插件配置 ==========
-    let extraPlugins = []
-
-    const { wantExtra } = await prompts({
-      type: 'toggle',
-      name: 'wantExtra',
-      message: '是否需要添加额外工具？',
-      initial: false,
-      active: '是',
-      inactive: '否'
-    })
-
-    if(wantExtra) {
-      const pluginOptions = [
-        { title: 'VueUse（实用 Composition API）', value: 'vueuse' },
-        { title: 'Lodash（实用工具库）', value: 'lodash' },
-        { title: 'Day.js（轻量日期处理）', value: 'dayjs' },
-        { title: 'Tailwind CSS（原子化 CSS）', value: 'tailwind' }
-      ]
-
-      const { selectedPlugins } = await prompts({
-        type: 'multiselect',
-        name: 'selectedPlugins',
-        message: '请选择额外工具（↑↓选择，空格确认，回车完成）',
-        choices: pluginOptions.map(p => ({ title: p.title, value: p.value })),
-        instructions: false
-      })
-
-      if(selectedPlugins?.length) {
-        extraPlugins = selectedPlugins
-      }
-    }
-    // ========== 增强插件配置结束 ==========
 
     // 3️⃣ 是否立即运行 dev
     const { runDev } = await prompts({
@@ -184,13 +175,13 @@ const __dirname = path.dirname(__filename)
       '/* __PINIA_IMPORT__ */': features.pinia
         ? "import { createPinia } from 'pinia'\nimport persistedstate from 'pinia-plugin-persistedstate'"
         : '',
-      '/* __ELEMENT_IMPORT__ */': features.ui === 'element'
+      '/* __ELEMENT_IMPORT__ */': features.ui.includes('element')
         ? `import ElementPlus from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import 'element-plus/dist/index.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'`
         : '',
-      '/* __VANT_IMPORT__ */': features.ui === 'vant'
+      '/* __VANT_IMPORT__ */': features.ui.includes('vant')
         ? `import Vant from 'vant'
 import 'vant/lib/index.css'`
         : '',
@@ -198,13 +189,13 @@ import 'vant/lib/index.css'`
       '/* __PINIA_USE__ */': features.pinia
         ? 'app.use(createPinia().use(persistedstate))'
         : '',
-      '/* __ELEMENT_USE__ */': features.ui === 'element'
+      '/* __ELEMENT_USE__ */': features.ui.includes('element')
         ? `app.use(ElementPlus, { locale: zhCn })
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }`
         : '',
-      '/* __VANT_USE__ */': features.ui === 'vant'
+      '/* __VANT_USE__ */': features.ui.includes('vant')
         ? 'app.use(Vant)'
         : ''
     }
@@ -234,21 +225,21 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
       let pkg = fs.readFileSync(pkgTpl, 'utf-8')
 
       const optionalDeps = {}
-      if(features.router) optionalDeps['vue-router'] = '^4.4.0'
+      if(features.router) optionalDeps['vue-router'] = '^5.0.3'
       if(features.pinia) {
-        optionalDeps['pinia'] = '^2.2.2'
-        optionalDeps['pinia-plugin-persistedstate'] = '^3.2.1'
+        optionalDeps['pinia'] = '^3.0.4'
+        optionalDeps['pinia-plugin-persistedstate'] = '^4.7.1'
       }
-      if(features.axios) optionalDeps['axios'] = '^1.7.7'
-      if(features.ui === 'element') {
-        optionalDeps['element-plus'] = '^2.8.8'
-        optionalDeps['@element-plus/icons-vue'] = '^2.3.1'
+      if(features.axios) optionalDeps['axios'] = '^1.13.6'
+      if(features.ui.includes('element')) {
+        optionalDeps['element-plus'] = '^2.13.3'
+        optionalDeps['@element-plus/icons-vue'] = '^2.3.2'
       }
-      if(features.ui === 'vant') {
+      if(features.ui.includes('vant')) {
         optionalDeps['vant'] = '^4.9.22'
       }
       // 增强插件依赖
-      if(extraPlugins.includes('vueuse')) optionalDeps['@vueuse/core'] = '^14.1.0'
+      if(extraPlugins.includes('vueuse')) optionalDeps['@vueuse/core'] = '^14.2.1'
       if(extraPlugins.includes('dayjs')) optionalDeps['dayjs'] = '^1.11.19'
       if(extraPlugins.includes('lodash')) optionalDeps['lodash'] = '^4.17.23'
       if(autoRoute) optionalDeps['vite-plugin-pages'] = '^0.33.3'

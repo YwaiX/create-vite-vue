@@ -11,17 +11,17 @@
   "dependencies": {
     "less": "^4.5.1",
     "tslib": "^2.8.1",
-    "vue": "^3.5.24"__OPTIONAL_DEP__
+    "vue": "^3.5.25"__OPTIONAL_DEP__
   },
   "devDependencies": {
-    "@types/node": "^24.10.4",
-    "@vitejs/plugin-vue": "^6.0.1",
+    "@types/node": "^24.11.0",
+    "@vitejs/plugin-vue": "^6.0.2",
     "@vue/tsconfig": "^0.8.1",
     "typescript": "~5.9.3",
-    "vite": "npm:rolldown-vite@latest",
-    "vue-tsc": "^3.1.4"
+    "vite": "^8.0.0-beta.13",
+    "vue-tsc": "^3.1.5"
   },
   "overrides": {
-    "vite": "npm:rolldown-vite@latest"
+    "vite": "^8.0.0-beta.13"
   }
 }
