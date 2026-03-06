@@ -360,10 +360,13 @@ export default createRouter({
 
     // 1️⃣0️⃣ 安装依赖
     console.log('📦 安装依赖中...')
-    execSync('npm install', { cwd: targetDir, stdio: 'inherit' })
+    let installCmd = 'npm install'
+
     if(extraPlugins.includes('tailwind')) {
-      execSync('npm install tailwindcss @tailwindcss/postcss postcss', { cwd: targetDir, stdio: 'inherit' })
+      installCmd += ' tailwindcss @tailwindcss/postcss postcss'
     }
+
+    execSync(installCmd, { cwd: targetDir, stdio: 'inherit' })
 
     // 1️⃣1️⃣ 运行 dev
     if(runDev) {

@@ -1,6 +1,6 @@
 {
   "name": "create-vite-vue",
-  "version": "1.5.0",
+  "version": "1.5.2",
   "description": "基于Vite+Vue3创建基础项目模板",
   "main": "index.js",
   "author": "YwaiX",
