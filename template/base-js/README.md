@@ -145,6 +145,34 @@ npm run dev
 
 ---
 
+## 🟢 Node.js 版本管理（.nvmrc）
+
+项目根目录中包含一个 **`.nvmrc`** 文件，用于指定当前项目推荐使用的**Node.js 版本**。这样可以保证不同开发者或不同机器运行项目时使用一致的 Node环境，避免依赖问题。
+
+### 使用 nvm 切换 Node 版本
+
+如果你安装了 **nvm（Node Version Manager）**，进入项目目录后执行：
+
+``` bash
+nvm use
+```
+
+nvm 会自动读取 `.nvmrc` 文件中的 Node 版本并切换。
+
+### Windows 可能出现的问题
+
+在 **Windows PowerShell** 中，`nvm use` 有时不会自动读取`.nvmrc`，可能会报错或无法切换版本。
+
+如果出现这种情况，可以执行：
+
+``` powershell
+nvm use $(Get-Content .nvmrc)
+```
+
+该命令会读取 `.nvmrc` 文件内容并手动切换 Node 版本。
+
+---
+
 ## 🔧 常见需要调整的地方（具体文件示例）
 
 ### 1️⃣ 接口请求地址
