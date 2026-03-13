@@ -34,6 +34,27 @@ if(compareVersion(currentVersion, requiredVersion) < 0) {
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+const pkgManager = detectPackageManager()
+
+const pkgCommands = {
+  npm: {
+    install: 'npm install',
+    dev: 'npm run dev'
+  },
+  yarn: {
+    install: 'yarn',
+    dev: 'yarn dev'
+  },
+  pnpm: {
+    install: 'pnpm install',
+    dev: 'pnpm dev'
+  },
+  bun: {
+    install: 'bun install',
+    dev: 'bun run dev'
+  }
+}
+
   ; (async () => {
     // 1️⃣ 输入项目名
     let projectName
@@ -117,7 +138,7 @@ const __dirname = path.dirname(__filename)
     const { runDev } = await prompts({
       type: 'select',
       name: 'runDev',
-      message: '是否立即运行 npm run dev？',
+      message: `是否立即运行 ${pkgCommands[pkgManager].dev}？`,
       choices: [{ title: 'Yes', value: true }, { title: 'No', value: false }]
     })
 
@@ -242,6 +263,11 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
       if(extraPlugins.includes('vueuse')) optionalDeps['@vueuse/core'] = '^14.2.1'
       if(extraPlugins.includes('dayjs')) optionalDeps['dayjs'] = '^1.11.19'
       if(extraPlugins.includes('lodash')) optionalDeps['lodash'] = '^4.17.23'
+      if(extraPlugins.includes('tailwind')) {
+        optionalDeps['tailwindcss'] = '^4.2.1'
+        optionalDeps['@tailwindcss/postcss'] = '^4.2.1'
+        optionalDeps['postcss'] = '^8.5.8'
+      }
       if(autoRoute) optionalDeps['vite-plugin-pages'] = '^0.33.3'
 
       let depsStr = ''
@@ -360,10 +386,15 @@ export default createRouter({
 
     // 1️⃣0️⃣ 安装依赖
     console.log('📦 安装依赖中...')
-    let installCmd = 'npm install'
 
-    if(extraPlugins.includes('tailwind')) {
-      installCmd += ' tailwindcss @tailwindcss/postcss postcss'
+    let installCmd = ''
+
+    if(pkgManager === 'pnpm') {
+      installCmd = 'pnpm install'
+    } else if(pkgManager === 'yarn') {
+      installCmd = 'yarn'
+    } else {
+      installCmd = 'npm install'
     }
 
     execSync(installCmd, { cwd: targetDir, stdio: 'inherit' })
@@ -371,8 +402,26 @@ export default createRouter({
     // 1️⃣1️⃣ 运行 dev
     if(runDev) {
       console.log('🚀 启动开发服务器...')
-      execSync('npm run dev', { cwd: targetDir, stdio: 'inherit' })
+      execSync(pkgCommands[pkgManager].dev, {
+        cwd: targetDir,
+        stdio: 'inherit'
+      })
     } else {
-      console.log(`\n✅ 项目创建完成\n👉 cd ${projectName}\n👉 npm run dev\n`)
+      console.log(`\n✅ 项目创建完成`)
+      console.log(`👉 cd ${projectName}`)
+      console.log(`👉 ${pkgCommands[pkgManager].dev}\n`)
     }
   })()
+
+function detectPackageManager () {
+  const userAgent = process.env.npm_config_user_agent || ''
+
+  if(userAgent.startsWith('pnpm')) return 'pnpm'
+  if(userAgent.startsWith('yarn')) return 'yarn'
+  if(userAgent.startsWith('npm')) return 'npm'
+
+  if(fs.existsSync('pnpm-lock.yaml')) return 'pnpm'
+  if(fs.existsSync('yarn.lock')) return 'yarn'
+
+  return 'npm'
+}

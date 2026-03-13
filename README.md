@@ -19,6 +19,7 @@
 - 🌐 本地及网络访问启动日志显示
 - 📝 自定义 Banner 插件显示项目信息
 - 🎨 可选集成 Tailwind CSS（通过 postcss 配置）
+- 🟢 支持多种包管理器：npm / yarn / pnpm，可根据环境自动识别并使用
 
 ---
 
@@ -58,7 +59,7 @@
 
 ## 📁 项目目录结构说明
 
-project-name
+project-name  
 ├─ public/                   —— 公共静态资源目录  
 │  └─ favicon.ico  
 ├─ src/  
@@ -70,11 +71,11 @@ project-name
 │  ├─ types/                 —— 类型声明文件  
 │  ├─ utils/                 —— 工具方法、请求封装  
 │  ├─ views/                 —— 页面级组件（路由页面）  
-│  │  └─ home/               —— 示例页面文件夹
-│  │     ├─ index.vue         —— 默认首页 /home
-│  │     ├─ meta.json         —— 页面 meta 信息
-│  │     └─ [id]/             —— 动态参数路由示例
-│  │         └─ [name].vue    —— 路由 /home/:id/:name
+│  │  └─ home/               —— 示例页面文件夹  
+│  │     ├─ index.vue         —— 默认首页 /home  
+│  │     ├─ meta.json         —— 页面 meta 信息  
+│  │     └─ [id]/             —— 动态参数路由示例  
+│  │         └─ [name].vue    —— 路由 /home/:id/:name  
 │  ├─ App.vue                —— 根组件  
 │  ├─ main.js / main.ts      —— 项目启动入口  
 │  └─ style.css              —— 全局样式文件  
@@ -101,47 +102,54 @@ project-name
 
 ---
 
-## ⚙️ 使用方式
+## ⚙️ 使用方式（多包管理器支持）
 
 1. 创建项目  
+
 ```bash
 npm create vite-vue@latest
+pnpm create vite-vue@latest
 ```
 
 2. 进入项目目录  
+
 ```bash
 cd 项目名
 ```
 
-3. 安装依赖  (已自动执行可省略)  
-```bash
-npm install
-```
+3. 安装依赖  
+
+> ⚡ 脚手架会自动检测你当前的包管理器并自动运行一下命令：
+>
+> - 如果使用 **npm**：`npm install`
+> - 如果使用 **pnpm**：`pnpm install`
 
 4. 启动开发环境  
+
 ```bash
 npm run dev
+pnpm dev
 ```
 
-> 如果在创建时选择了「立即运行」，工具会自动执行启动命令。
+> 如果在创建时选择了「立即运行」，工具会自动执行启动命令。使用yarn创建项目会报错,暂时未适配
 
 ---
 
 ## 🌐 技术栈官网链接
 
-- [Vite](https://vitejs.dev/)
-- [Vue 3](https://vuejs.org/)
-- [JavaScript](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Vue Router](https://router.vuejs.org/)
-- [Pinia](https://pinia.vuejs.org/)
-- [Axios](https://axios-http.com/)
-- [Element Plus](https://element-plus.org/)
-- [Vant](https://vant-contrib.gitee.io/vant/)
-- [VueUse](https://vueuse.org/)
-- [Lodash](https://lodash.com/)
-- [Day.js](https://day.js.org/)
-- [Tailwind CSS](https://tailwindcss.com/)
+- [Vite](https://vitejs.dev/)  
+- [Vue 3](https://vuejs.org/)  
+- [JavaScript](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript)  
+- [TypeScript](https://www.typescriptlang.org/)  
+- [Vue Router](https://router.vuejs.org/)  
+- [Pinia](https://pinia.vuejs.org/)  
+- [Axios](https://axios-http.com/)  
+- [Element Plus](https://element-plus.org/)  
+- [Vant](https://vant-contrib.gitee.io/vant/)  
+- [VueUse](https://vueuse.org/)  
+- [Lodash](https://lodash.com/)  
+- [Day.js](https://day.js.org/)  
+- [Tailwind CSS](https://tailwindcss.com/)  
 
 ---
 
@@ -151,25 +159,23 @@ npm run dev
 
 ### 使用 nvm 切换 Node 版本
 
-如果你安装了 **nvm（Node Version Manager）**，进入项目目录后执行：
+如果你安装了 **nvm（Node Version Manager）**，进入项目目录后执行：  
 
-``` bash
+```bash
 nvm use
 ```
 
-nvm 会自动读取 `.nvmrc` 文件中的 Node 版本并切换。
+> nvm 会自动读取 `.nvmrc` 文件中的 Node 版本并切换。  
 
 ### Windows 可能出现的问题
 
-在 **Windows PowerShell** 中，`nvm use` 有时不会自动读取`.nvmrc`，可能会报错或无法切换版本。
+在 **Windows PowerShell** 中，`nvm use` 有时不会自动读取`.nvmrc`，可能会报错或无法切换版本。  
 
-如果出现这种情况，可以执行：
+如果出现这种情况，可以执行：  
 
-``` powershell
+```powershell
 nvm use $(Get-Content .nvmrc)
 ```
-
-该命令会读取 `.nvmrc` 文件内容并手动切换 Node 版本。
 
 ---
 
@@ -177,7 +183,8 @@ nvm use $(Get-Content .nvmrc)
 
 ### 1️⃣ 接口请求地址
 
-文件：`src/utils/request.ts`  `src/utils/request.js`  
+文件：`src/utils/request.ts` / `src/utils/request.js`  
+
 ```ts
 import axios from 'axios';
 
@@ -187,7 +194,7 @@ const service = axios.create({
 });
 
 // 示例请求
-export const getUserList = () => request.get('/users');
+export const getUserList = () => service.get('/users');
 
 export default service;
 ```
@@ -198,7 +205,8 @@ export default service;
 
 ### 2️⃣ 本地代理配置
 
-文件：`vite.config.ts`  `vite.config.js`  
+文件：`vite.config.ts` / `vite.config.js`  
+
 ```ts
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
@@ -224,7 +232,8 @@ export default defineConfig({
 
 ### 3️⃣ 路由结构（支持动态参数）
 
-文件：`src/router/index.ts`  `src/router/index.js`  
+文件：`src/router/index.ts` / `src/router/index.js`  
+
 ```ts
 import { createRouter, createWebHistory } from 'vue-router'
 import routes from '~pages'  // 自动生成的路由
@@ -237,14 +246,16 @@ const router = createRouter({
 export default router
 ```
 
-> 🔹 页面文件夹结构示例：
+> 页面文件夹结构示例：
+
 ```text
 src/views/home/
 ├─ index.vue          -> /home
 └─ [id]/[name].vue    -> /home/:id/:name
 ```
 
-> 🔹 获取路由参数：
+> 获取路由参数：
+
 ```ts
 import { useRoute } from 'vue-router'
 const route = useRoute()
@@ -257,6 +268,7 @@ console.log(route.params.name)
 ### 4️⃣ 页面内容与样式
 
 文件示例：`src/views/home/index.vue`  
+
 ```vue
 <template>
   <div class="home-container">
