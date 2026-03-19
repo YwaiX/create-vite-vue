@@ -41,10 +41,6 @@ const pkgCommands = {
     install: 'npm install',
     dev: 'npm run dev'
   },
-  yarn: {
-    install: 'yarn',
-    dev: 'yarn dev'
-  },
   pnpm: {
     install: 'pnpm install',
     dev: 'pnpm dev'
@@ -104,7 +100,8 @@ const pkgCommands = {
         { title: 'VueUse（实用 Composition API）', value: 'vueuse' },
         { title: 'Lodash（工具库）', value: 'lodash' },
         { title: 'Day.js（日期处理）', value: 'dayjs' },
-        { title: 'Tailwind CSS（原子化 CSS）', value: 'tailwind' }
+        { title: 'Tailwind CSS（原子化 CSS）', value: 'tailwind' },
+        { title: 'mitt（事件总线）', value: 'mitt' }
       ]
     })
 
@@ -117,7 +114,7 @@ const pkgCommands = {
     }
 
     const extraPlugins = featureList?.filter(v =>
-      ['vueuse', 'lodash', 'dayjs', 'tailwind'].includes(v)
+      ['vueuse', 'lodash', 'dayjs', 'tailwind', 'mitt'].includes(v)
     ) || []
 
     // 询问是否开启自动路由
@@ -253,7 +250,7 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
       }
       if(features.axios) optionalDeps['axios'] = '^1.13.6'
       if(features.ui.includes('element')) {
-        optionalDeps['element-plus'] = '^2.13.3'
+        optionalDeps['element-plus'] = '^2.13.5'
         optionalDeps['@element-plus/icons-vue'] = '^2.3.2'
       }
       if(features.ui.includes('vant')) {
@@ -261,13 +258,14 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
       }
       // 增强插件依赖
       if(extraPlugins.includes('vueuse')) optionalDeps['@vueuse/core'] = '^14.2.1'
-      if(extraPlugins.includes('dayjs')) optionalDeps['dayjs'] = '^1.11.19'
+      if(extraPlugins.includes('dayjs')) optionalDeps['dayjs'] = '^1.11.20'
       if(extraPlugins.includes('lodash')) optionalDeps['lodash'] = '^4.17.23'
       if(extraPlugins.includes('tailwind')) {
-        optionalDeps['tailwindcss'] = '^4.2.1'
-        optionalDeps['@tailwindcss/postcss'] = '^4.2.1'
+        optionalDeps['tailwindcss'] = '^4.2.2'
+        optionalDeps['@tailwindcss/postcss'] = '^4.2.2'
         optionalDeps['postcss'] = '^8.5.8'
       }
+      if(extraPlugins.includes('mitt')) optionalDeps['mitt'] = '^3.0.1'
       if(autoRoute) optionalDeps['vite-plugin-pages'] = '^0.33.3'
 
       let depsStr = ''
@@ -391,8 +389,6 @@ export default createRouter({
 
     if(pkgManager === 'pnpm') {
       installCmd = 'pnpm install'
-    } else if(pkgManager === 'yarn') {
-      installCmd = 'yarn'
     } else {
       installCmd = 'npm install'
     }
@@ -417,11 +413,9 @@ function detectPackageManager () {
   const userAgent = process.env.npm_config_user_agent || ''
 
   if(userAgent.startsWith('pnpm')) return 'pnpm'
-  if(userAgent.startsWith('yarn')) return 'yarn'
   if(userAgent.startsWith('npm')) return 'npm'
 
   if(fs.existsSync('pnpm-lock.yaml')) return 'pnpm'
-  if(fs.existsSync('yarn.lock')) return 'yarn'
 
   return 'npm'
 }

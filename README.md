@@ -19,7 +19,8 @@
 - 🌐 本地及网络访问启动日志显示
 - 📝 自定义 Banner 插件显示项目信息
 - 🎨 可选集成 Tailwind CSS（通过 postcss 配置）
-- 🟢 支持多种包管理器：npm / yarn / pnpm，可根据环境自动识别并使用
+- 🟢 支持多种包管理器：npm / pnpm，可根据环境自动识别并使用
+- 🔔 可选集成 Mitt（轻量事件总线，实现组件间解耦通信）
 
 ---
 
@@ -34,6 +35,7 @@
 🖥️ Element Plus / 📱 Vant  
 🧰 VueUse · Lodash · Day.js  
 🎨 Tailwind CSS  
+🔔 Mitt  
 
 ---
 
@@ -59,46 +61,57 @@
 
 ## 📁 项目目录结构说明
 
-project-name  
-├─ public/                   —— 公共静态资源目录  
-│  └─ favicon.ico  
-├─ src/  
-│  ├─ api/                   —— 接口请求封装目录  
-│  ├─ assets/                —— 图片、字体等静态资源  
-│  ├─ components/            —— 公共组件目录  
-│  ├─ router/                —— 路由配置（可选）  
-│  ├─ stores/                —— Pinia 状态管理（可选）  
-│  ├─ types/                 —— 类型声明文件  
-│  ├─ utils/                 —— 工具方法、请求封装  
-│  ├─ views/                 —— 页面级组件（路由页面）  
-│  │  └─ home/               —— 示例页面文件夹  
-│  │     ├─ index.vue         —— 默认首页 /home  
-│  │     ├─ meta.json         —— 页面 meta 信息  
-│  │     └─ [id]/             —— 动态参数路由示例  
-│  │         └─ [name].vue    —— 路由 /home/:id/:name  
-│  ├─ App.vue                —— 根组件  
-│  ├─ main.js / main.ts      —— 项目启动入口  
-│  └─ style.css              —— 全局样式文件  
-├─ index.html                —— 项目入口页面  
-├─ jsconfig.json / tsconfig.json —— 路径别名与编译配置  
-├─ package.json              —— 项目依赖与脚本配置  
-├─ postcss.config.mjs        —— Tailwind CSS 配置文件（可选）  
-├─ README.md                 —— 项目说明文档  
-└─ vite.config.ts            —— Vite 开发与构建配置  
-
-### 目录说明（白话版）
-
-- **public**：放不会被打包处理的静态资源  
-- **assets**：项目中使用的图片、字体等资源  
-- **components**：可复用的通用组件  
-- **views**：页面级组件，通常与路由一一对应  
-- **router**：统一管理页面路由规则  
-- **stores**：全局状态管理目录  
-- **utils**：请求封装、工具方法等公共逻辑  
-- **api**：接口请求封装目录  
-- **types**：TypeScript 类型定义  
-- **postcss.config.mjs**：Tailwind CSS 配置，可根据需求修改  
-- **README.md**：项目说明文档
+> project-name  
+>
+> ├─ public/          —— 公共静态资源目录  
+>
+> │  └─ favicon.ico  
+>
+> ├─ src/  
+>
+> │  ├─ api/          —— 接口请求封装目录  
+>
+> │  ├─ assets/         —— 图片、字体等静态资源  
+>
+> │  ├─ components/       —— 公共组件目录  
+>
+> │  ├─ router/         —— 路由配置（可选）  
+>
+> │  ├─ stores/         —— Pinia 状态管理（可选）  
+>
+> │  ├─ types/         —— 类型声明文件  
+>
+> │  ├─ utils/         —— 工具方法、请求封装  
+>
+> │  ├─ views/         —— 页面级组件（路由页面）  
+>
+> │  │  └─ home/        —— 示例页面文件夹  
+>
+> │  │   ├─ index.vue     —— 默认首页 /home  
+>
+> │  │   ├─ meta.json     —— 页面 meta 信息  
+>
+> │  │   └─ [id]/       —— 动态参数路由示例  
+>
+> │  │     └─ [name].vue   —— 路由 /home/:id/:name  
+>
+> │  ├─ App.vue         —— 根组件  
+>
+> │  ├─ main.js / main.ts    —— 项目启动入口  
+>
+> │  └─ style.css        —— 全局样式文件  
+>
+> ├─ index.html         —— 项目入口页面  
+>
+> ├─ jsconfig.json / tsconfig.json —— 路径别名与编译配置  
+>
+> ├─ package.json        —— 项目依赖与脚本配置  
+>
+> ├─ postcss.config.mjs     —— Tailwind CSS 配置文件（可选）  
+>
+> ├─ README.md         —— 项目说明文档  
+>
+> └─ vite.config.ts       —— Vite 开发与构建配置  
 
 ---
 
@@ -119,62 +132,16 @@ cd 项目名
 
 3. 安装依赖  
 
-> ⚡ 脚手架会自动检测你当前的包管理器并自动运行一下命令：
->
-> - 如果使用 **npm**：`npm install`
-> - 如果使用 **pnpm**：`pnpm install`
+```bash
+npm install
+pnpm install
+```
 
 4. 启动开发环境  
 
 ```bash
 npm run dev
 pnpm dev
-```
-
-> 如果在创建时选择了「立即运行」，工具会自动执行启动命令。使用yarn创建项目会报错,暂时未适配
-
----
-
-## 🌐 技术栈官网链接
-
-- [Vite](https://vitejs.dev/)  
-- [Vue 3](https://vuejs.org/)  
-- [JavaScript](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript)  
-- [TypeScript](https://www.typescriptlang.org/)  
-- [Vue Router](https://router.vuejs.org/)  
-- [Pinia](https://pinia.vuejs.org/)  
-- [Axios](https://axios-http.com/)  
-- [Element Plus](https://element-plus.org/)  
-- [Vant](https://vant-contrib.gitee.io/vant/)  
-- [VueUse](https://vueuse.org/)  
-- [Lodash](https://lodash.com/)  
-- [Day.js](https://day.js.org/)  
-- [Tailwind CSS](https://tailwindcss.com/)  
-
----
-
-## 🟢 Node.js 版本管理（.nvmrc）
-
-项目根目录中包含一个 **`.nvmrc`** 文件，用于指定当前项目推荐使用的**Node.js 版本**。这样可以保证不同开发者或不同机器运行项目时使用一致的 Node环境，避免依赖问题。
-
-### 使用 nvm 切换 Node 版本
-
-如果你安装了 **nvm（Node Version Manager）**，进入项目目录后执行：  
-
-```bash
-nvm use
-```
-
-> nvm 会自动读取 `.nvmrc` 文件中的 Node 版本并切换。  
-
-### Windows 可能出现的问题
-
-在 **Windows PowerShell** 中，`nvm use` 有时不会自动读取`.nvmrc`，可能会报错或无法切换版本。  
-
-如果出现这种情况，可以执行：  
-
-```powershell
-nvm use $(Get-Content .nvmrc)
 ```
 
 ---
@@ -293,6 +260,64 @@ console.log(route.params.name)
 
 ---
 
+### 5️⃣ Mitt 事件总线使用示例
+
+#### 封装事件总线
+
+文件：`src/utils/eventBus.ts`
+
+```ts
+import mitt from 'mitt'
+
+type Events = {
+  userLogin: { name: string },
+  userLogout: null
+}
+
+const emitter = mitt<Events>()
+
+export default emitter
+```
+
+#### 使用示例
+
+##### 组件 A（发送事件）
+
+```ts
+<script setup lang="ts">
+import eventBus from '@/utils/eventBus'
+
+function login() {
+  eventBus.emit('userLogin', { name: '张三' })
+}
+</script>
+```
+
+##### 组件 B（接收事件）
+
+```ts
+<script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue'
+import eventBus from '@/utils/eventBus'
+
+function handleLogin(payload: { name: string }) {
+  console.log('用户登录:', payload.name)
+}
+
+onMounted(() => {
+  eventBus.on('userLogin', handleLogin)
+})
+
+onUnmounted(() => {
+  eventBus.off('userLogin', handleLogin)
+})
+</script>
+```
+
+> 🔹 Mitt 事件总线轻量高效，适合组件间解耦通信，替代父子传递 props / emit 或 Vuex/Pinia 中的小型事件场景。
+
+---
+
 ## 🎯 适用场景
 
 - Vue 3 新手快速上手
@@ -300,6 +325,25 @@ console.log(route.params.name)
 - 中小型 Web 项目
 - 练手项目 / 毕设 / 实战项目
 - 不想每次重复配置环境的开发者
+
+---
+
+## 🌐 技术栈官网链接
+
+- [Vite | 下一代的前端工具链](https://cn.vitejs.dev/)
+- [Vue.js - 渐进式 JavaScript 框架 | Vue.js](https://cn.vuejs.org/)
+- [JavaScript](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript)  
+- [TypeScript](https://www.typescriptlang.org/)  
+- [Vue Router | Vue.js 的官方路由](https://router.vuejs.org/zh/)
+- [Pinia | The intuitive store for Vue.js](https://pinia.vuejs.org/zh/)
+- [Axios](https://www.axios-http.cn/)
+- [Element Plus | 一个 Vue 3 UI 框架](https://element-plus.org/zh-CN/)
+- [Vant 4 - 轻量、可定制的移动端组件库](https://vant-ui.github.io/vant/#/zh-CN)
+- [VueUse](https://vueuse.pages.dev/)
+- [Lodash](https://www.lodashjs.com/)
+- [Day.js](https://day.js.org/)  
+- [Tailwind CSS](https://tailwindcss.com/)  
+- [Mitt](https://github.com/developit/mitt)  
 
 ---
 
