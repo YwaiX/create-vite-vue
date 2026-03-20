@@ -21,6 +21,7 @@
 - 🎨 可选集成 Tailwind CSS（通过 postcss 配置）
 - 🟢 支持多种包管理器：npm / pnpm，可根据环境自动识别并使用
 - 🔔 可选集成 Mitt（轻量事件总线，实现组件间解耦通信）
+- 🛡️ 可选集成 mkcert 插件，实现本地 HTTPS 开发环境
 
 ---
 
@@ -36,6 +37,7 @@
 🧰 VueUse · Lodash · Day.js  
 🎨 Tailwind CSS  
 🔔 Mitt  
+🛡️ mkcert (本地 HTTPS)
 
 ---
 

@@ -101,7 +101,8 @@ const pkgCommands = {
         { title: 'Lodash（工具库）', value: 'lodash' },
         { title: 'Day.js（日期处理）', value: 'dayjs' },
         { title: 'Tailwind CSS（原子化 CSS）', value: 'tailwind' },
-        { title: 'mitt（事件总线）', value: 'mitt' }
+        { title: 'mitt（事件总线）', value: 'mitt' },
+        { title: 'HTTPS（mkcert）', value: 'https' }
       ]
     })
 
@@ -114,7 +115,7 @@ const pkgCommands = {
     }
 
     const extraPlugins = featureList?.filter(v =>
-      ['vueuse', 'lodash', 'dayjs', 'tailwind', 'mitt'].includes(v)
+      ['vueuse', 'lodash', 'dayjs', 'tailwind', 'mitt', 'https'].includes(v)
     ) || []
 
     // 询问是否开启自动路由
@@ -130,6 +131,8 @@ const pkgCommands = {
       })
       autoRoute = enableAutoRoute
     }
+
+    const enableHttps = featureList?.includes('https') || false
 
     // 3️⃣ 是否立即运行 dev
     const { runDev } = await prompts({
@@ -266,6 +269,7 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
         optionalDeps['postcss'] = '^8.5.8'
       }
       if(extraPlugins.includes('mitt')) optionalDeps['mitt'] = '^3.0.1'
+      if(enableHttps) optionalDeps['vite-plugin-mkcert'] = '^1.17.10'
       if(autoRoute) optionalDeps['vite-plugin-pages'] = '^0.33.3'
 
       let depsStr = ''
@@ -282,19 +286,48 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
       fs.unlinkSync(pkgTpl)
     }
 
-    // 8️⃣ 配置自动路由
-    if(autoRoute) {
-      const viteConfigPath = path.join(targetDir, `vite.config.${language === 'ts' ? 'ts' : 'js'}`)
-      if(fs.existsSync(viteConfigPath)) {
-        let viteConfig = fs.readFileSync(viteConfigPath, 'utf-8')
+    // 8️⃣ 配置 vite.config.js / vite.config.ts（自动路由 + HTTPS）
+    const viteConfigPath = path.join(
+      targetDir,
+      `vite.config.${language === 'ts' ? 'ts' : 'js'}`
+    )
+
+    if(fs.existsSync(viteConfigPath)) {
+      let viteConfig = fs.readFileSync(viteConfigPath, 'utf-8')
+
+      // ===== mkcert 插件 =====
+      if(enableHttps) {
+        if(!viteConfig.includes("vite-plugin-mkcert")) {
+          viteConfig = viteConfig.replace(
+            /(import .*?from .*?\n)/,
+            `$1import mkcert from 'vite-plugin-mkcert'\n`
+          )
+        }
+
+        if(!viteConfig.includes("mkcert(")) {
+          viteConfig = viteConfig.replace(
+            /plugins:\s*\[/,
+            `plugins: [
+    mkcert(),`
+          )
+        }
+      }
+
+      // ===== 自动路由 =====
+      if(autoRoute) {
         if(!viteConfig.includes("import fs from 'fs'")) {
           viteConfig = `import fs from 'fs'\n${viteConfig}`
         }
-        // 确保顶部 import Pages
         if(!viteConfig.includes("import Pages from 'vite-plugin-pages'")) {
-          viteConfig = viteConfig.replace(/(import .*?from .*?\n)/, `$1import Pages from 'vite-plugin-pages'\n`)
+          viteConfig = viteConfig.replace(
+            /(import .*?from .*?\n)/,
+            `$1import Pages from 'vite-plugin-pages'\n`
+          )
         }
-        viteConfig = viteConfig.replace(/plugins:\s*\[/, `plugins: [
+        if(!viteConfig.includes("Pages({")) {
+          viteConfig = viteConfig.replace(
+            /plugins:\s*\[/,
+            `plugins: [
     Pages({
       dirs: 'src/views',
       extensions: ['vue'],
@@ -314,33 +347,13 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
         }
         return { ...route }
       }
-    }),`)
-        fs.writeFileSync(viteConfigPath, viteConfig)
+    }),`
+          )
+        }
       }
 
-      // 创建 Home/meta.json
-      const homeMetaPath = path.join(targetDir, 'src/views/home/meta.json')
-      if(!fs.existsSync(homeMetaPath)) {
-        fs.writeFileSync(homeMetaPath, JSON.stringify({ title: '首页' }, null, 2))
-      }
-      if(language === 'ts') {
-        // 生成 types 目录
-        const typesDir = path.join(targetDir, 'src/types')
-        if(!fs.existsSync(typesDir)) fs.mkdirSync(typesDir, { recursive: true })
-
-        // 创建 vite-plugin-pages.d.ts
-        const vitePagesDtsPath = path.join(typesDir, 'vite-plugin-pages.d.ts')
-        const vitePagesDtsContent = `declare module '~pages' {
-  import type { RouteRecordRaw } from 'vue-router'
-  const routes: RouteRecordRaw[]
-  export default routes
-}
-`
-        fs.writeFileSync(vitePagesDtsPath, vitePagesDtsContent)
-      }
-
+      fs.writeFileSync(viteConfigPath, viteConfig)
     }
-
     // 9️⃣ 替换 router/index.js
     if(features.router) {
       const routerIndexPath = path.join(targetDir, `src/router/index.${language === 'ts' ? 'ts' : 'js'}`)
@@ -398,6 +411,9 @@ export default createRouter({
     // 1️⃣1️⃣ 运行 dev
     if(runDev) {
       console.log('🚀 启动开发服务器...')
+      if(enableHttps) {
+        console.log('🔐 首次启用 HTTPS 会自动生成证书，请稍等...')
+      }
       execSync(pkgCommands[pkgManager].dev, {
         cwd: targetDir,
         stdio: 'inherit'
@@ -405,7 +421,10 @@ export default createRouter({
     } else {
       console.log(`\n✅ 项目创建完成`)
       console.log(`👉 cd ${projectName}`)
-      console.log(`👉 ${pkgCommands[pkgManager].dev}\n`)
+      console.log(`👉 ${pkgCommands[pkgManager].dev}`)
+      if(enableHttps) {
+        console.log('🔐 首次启用 HTTPS 会自动生成证书，请稍等...\n')
+      }
     }
   })()
 
