@@ -282,6 +282,20 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
         .replace('__PROJECT_NAME__', projectName)
         .replace('__OPTIONAL_DEP__', depsStr)
 
+      // ⭐ 新增逻辑
+      let pkgObj = JSON.parse(pkg)
+
+      if(pkgManager === 'pnpm' && features.ui.includes('vant')) {
+        pkgObj.pnpm = {
+          overrides: {
+            "@vant/use": "^1.0.0",
+            "@vant/popperjs": "^1.0.0"
+          }
+        }
+      }
+
+      pkg = JSON.stringify(pkgObj, null, 2)
+
       fs.writeFileSync(path.join(targetDir, 'package.json'), pkg)
       fs.unlinkSync(pkgTpl)
     }

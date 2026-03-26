@@ -37,7 +37,7 @@
 🧰 VueUse · Lodash · Day.js  
 🎨 Tailwind CSS  
 🔔 Mitt  
-🛡️ mkcert (本地 HTTPS)
+🛡️ mkcert (本地 HTTPS)  
 
 ---
 
@@ -230,6 +230,34 @@ import { useRoute } from 'vue-router'
 const route = useRoute()
 console.log(route.params.id)
 console.log(route.params.name)
+```
+
+### ✅ meta.json 自动注入路由
+
+在每个页面目录下可以新增一个 `meta.json` 文件：
+
+```text
+src/views/home/
+├─ index.vue
+└─ meta.json
+```
+
+#### 示例：
+
+```json
+{
+  "name": "首页",
+  "orderMenu": 1
+}
+```
+
+👉 脚手架会自动读取该文件，并注入到对应路由的 `meta` 属性中：
+
+```js
+route.meta = {
+  name: "首页",
+  orderMenu: 1
+}
 ```
 
 ---
