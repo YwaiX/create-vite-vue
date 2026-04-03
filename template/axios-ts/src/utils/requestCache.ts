@@ -1,5 +1,12 @@
 import { InternalAxiosRequestConfig } from "axios"
 
+// 扩展 InternalAxiosRequestConfig 类型，添加自定义属性 __requestKey
+declare module "axios" {
+  interface InternalAxiosRequestConfig {
+    __requestKey?: string
+  }
+}
+
 const pendingRequests = new Map()
 
 /**

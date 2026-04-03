@@ -1,454 +1,72 @@
 #!/usr/bin/env node
-import { execSync } from 'child_process'
 import fs from 'fs'
 import path from 'path'
-import prompts from 'prompts'
 import { fileURLToPath } from 'url'
 
-// 检测 Node 版本
+// === 导入模块 ===
+import { parseExtraPlugins, parseFeatures } from '../lib/features.js'
+import { generateMainFile } from '../lib/mainFile.js'
+import { generatePackageJson } from '../lib/package.js'
+import { askAutoRoute, askRunDev, chooseFeatures, chooseLanguage, getProjectName } from '../lib/prompts.js'
+import { configureRouter } from '../lib/router.js'
+import { appendTailwind, copyBaseTemplate, copyOptionalTemplates, updateIndexHtml } from '../lib/template.js'
+import { checkNodeVersion, detectPackageManager, runCmd } from '../lib/utils.js'
+import { configureVite } from '../lib/viteConfig.js'
+
+// ===================== 常量 =====================
 const requiredVersion = '22.19.0'
-
-function compareVersion (v1, v2) {
-  const a = v1.split('.').map(Number)
-  const b = v2.split('.').map(Number)
-
-  for(let i = 0; i < Math.max(a.length, b.length); i++) {
-    const n1 = a[i] || 0
-    const n2 = b[i] || 0
-    if(n1 > n2) return 1
-    if(n1 < n2) return -1
-  }
-  return 0
-}
-
-const currentVersion = process.version.replace('v', '')
-
-if(compareVersion(currentVersion, requiredVersion) < 0) {
-  console.error(`❌ Node.js 版本过低`)
-  console.error(`当前版本: ${currentVersion}`)
-  console.error(`最低要求: ${requiredVersion}`)
-  console.error(`请升级 Node.js 后再运行`)
-  process.exit(1)
-}
-
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-
 const pkgManager = detectPackageManager()
 
 const pkgCommands = {
-  npm: {
-    install: 'npm install',
-    dev: 'npm run dev'
-  },
-  pnpm: {
-    install: 'pnpm install',
-    dev: 'pnpm dev'
-  },
-  bun: {
-    install: 'bun install',
-    dev: 'bun run dev'
-  }
+  npm: { install: 'npm install', dev: 'npm run dev' },
+  pnpm: { install: 'pnpm install', dev: 'pnpm dev' }
 }
 
+  // ===================== 主流程 =====================
   ; (async () => {
-    // 1️⃣ 输入项目名
-    let projectName
-    while(true) {
-      const res = await prompts({
-        type: 'text',
-        name: 'projectName',
-        message: '📦 项目名称',
-        validate: v => v ? true : '项目名不能为空'
-      })
-      projectName = res.projectName
-      if(!projectName) process.exit(1)
+    checkNodeVersion(requiredVersion)
 
-      const targetDir = path.resolve(process.cwd(), projectName)
-      if(fs.existsSync(targetDir)) {
-        console.log('❌ 目录已存在，请重新输入')
-        continue
-      }
-      break
-    }
-
+    const projectName = await getProjectName(fs, path)
     const targetDir = path.resolve(process.cwd(), projectName)
 
-    // 选择语言
-    const { language } = await prompts({
-      type: 'select',
-      name: 'language',
-      message: '请选择项目语言',
-      choices: [
-        { title: 'JavaScript', value: 'js' },
-        { title: 'TypeScript', value: 'ts' }
-      ]
-    })
+    const language = await chooseLanguage()
+    const featureList = await chooseFeatures()
+    const features = parseFeatures(featureList)
+    const extraPlugins = parseExtraPlugins(featureList)
 
-    // 2️⃣ 功能选择（多选）
-    const { featureList } = await prompts({
-      type: 'multiselect',
-      name: 'featureList',
-      message: '请选择基础功能（↑↓选择，空格确认，回车完成）',
-      instructions: false,
-      choices: [
-        { title: 'Vue Router', value: 'router' },
-        { title: 'Pinia（含持久化）', value: 'pinia' },
-        { title: 'Axios', value: 'axios' },
-        { title: 'Element Plus（PC UI）', value: 'element' },
-        { title: 'Vant（Mobile UI）', value: 'vant' },
-        { title: 'VueUse（实用 Composition API）', value: 'vueuse' },
-        { title: 'Lodash（工具库）', value: 'lodash' },
-        { title: 'Day.js（日期处理）', value: 'dayjs' },
-        { title: 'Tailwind CSS（原子化 CSS）', value: 'tailwind' },
-        { title: 'mitt（事件总线）', value: 'mitt' },
-        { title: 'HTTPS（mkcert）', value: 'https' }
-      ]
-    })
+    const autoRoute = await askAutoRoute(features.router)
+    const enableHttps = featureList.includes('https') || false
+    const runDev = await askRunDev(pkgCommands[pkgManager].dev)
 
-    // 转换成原来的结构（保证后面代码基本不用动）
-    const features = {
-      router: featureList?.includes('router') || false,
-      pinia: featureList?.includes('pinia') || false,
-      axios: featureList?.includes('axios') || false,
-      ui: featureList?.filter(v => ['element', 'vant'].includes(v)) || []
-    }
+    // 模板文件处理
+    copyBaseTemplate(language, targetDir, __dirname)
+    updateIndexHtml(projectName, targetDir)
+    appendTailwind(extraPlugins, targetDir)
+    copyOptionalTemplates(features, extraPlugins, language, targetDir, __dirname)
 
-    const extraPlugins = featureList?.filter(v =>
-      ['vueuse', 'lodash', 'dayjs', 'tailwind', 'mitt', 'https'].includes(v)
-    ) || []
+    // 生成 main 文件
+    await generateMainFile(features, extraPlugins, language, targetDir)
 
-    // 询问是否开启自动路由
-    let autoRoute = false
-    if(features.router) {
-      const { enableAutoRoute } = await prompts({
-        type: 'toggle',
-        name: 'enableAutoRoute',
-        message: '是否开启自动配置路由（vite-plugin-pages）？',
-        initial: false,
-        active: '是',
-        inactive: '否'
-      })
-      autoRoute = enableAutoRoute
-    }
+    // package.json
+    generatePackageJson(projectName, features, extraPlugins, autoRoute, enableHttps, language, targetDir, pkgManager)
 
-    const enableHttps = featureList?.includes('https') || false
+    // 配置 vite
+    configureVite(language, autoRoute, enableHttps, targetDir)
 
-    // 3️⃣ 是否立即运行 dev
-    const { runDev } = await prompts({
-      type: 'select',
-      name: 'runDev',
-      message: `是否立即运行 ${pkgCommands[pkgManager].dev}？`,
-      choices: [{ title: 'Yes', value: true }, { title: 'No', value: false }]
-    })
+    // 配置 router
+    configureRouter(features.router, autoRoute, language, targetDir)
 
-    // 4️⃣ 拷贝 base 模板
-    const baseTemplate = language === 'ts' ? 'base-ts' : 'base-js'
-    fs.cpSync(
-      path.resolve(__dirname, `../template/${baseTemplate}`),
-      targetDir,
-      { recursive: true }
-    )
+    // 安装依赖
+    runCmd(pkgCommands[pkgManager].install, targetDir)
 
-    // 替换 index.html 的 title
-    const indexPath = path.join(targetDir, 'index.html')
-    if(fs.existsSync(indexPath)) {
-      const indexContent = fs.readFileSync(indexPath, 'utf-8')
-      fs.writeFileSync(
-        indexPath,
-        indexContent.replace(/<title>.*<\/title>/, `<title>${projectName}</title>`)
-      )
-    }
-
-    // 追加 Tailwind CSS 导入
-    if(extraPlugins.includes('tailwind')) {
-      const stylePath = path.join(targetDir, 'src/style.css')
-      const original = fs.readFileSync(stylePath, 'utf-8')
-      if(!original.startsWith('@import "tailwindcss";')) {
-        fs.writeFileSync(stylePath, `@import "tailwindcss";\n${original}`)
-      }
-    }
-
-    // 5️⃣ 拷贝可选模板（基础功能）
-    const copy = name => {
-      fs.cpSync(path.resolve(__dirname, `../template/${name}`), targetDir, { recursive: true })
-    }
-    features.router && copy(language === 'ts' ? 'router-ts' : 'router-js')
-    features.pinia && copy(language === 'ts' ? 'pinia-ts' : 'pinia-js')
-    features.axios && copy(language === 'ts' ? 'axios-ts' : 'axios-js')
-
-    // 拷贝增强插件模板
-    for(const plugin of extraPlugins) {
-      const templateName = `${plugin}-${language === 'ts' ? 'ts' : 'js'}`
-      const templatePath = path.resolve(__dirname, `../template/${templateName}`)
-      if(fs.existsSync(templatePath)) {
-        fs.cpSync(templatePath, targetDir, { recursive: true })
-      }
-    }
-
-    // 6️⃣ 生成 main.js / main.ts
-    const mainFile = language === 'ts' ? 'main.ts' : 'main.js'
-    const mainTplPath = path.join(targetDir, `src/${mainFile}.tpl`)
-    let main = fs.readFileSync(mainTplPath, 'utf-8')
-
-    const replacements = {
-      '/* __ROUTER_IMPORT__ */': features.router ? "import router from './router'" : '',
-      '/* __PINIA_IMPORT__ */': features.pinia
-        ? "import { createPinia } from 'pinia'\nimport persistedstate from 'pinia-plugin-persistedstate'"
-        : '',
-      '/* __ELEMENT_IMPORT__ */': features.ui.includes('element')
-        ? `import ElementPlus from 'element-plus'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
-import 'element-plus/dist/index.css'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'`
-        : '',
-      '/* __VANT_IMPORT__ */': features.ui.includes('vant')
-        ? `import Vant from 'vant'
-import 'vant/lib/index.css'`
-        : '',
-      '/* __ROUTER_USE__ */': features.router ? 'app.use(router)' : '',
-      '/* __PINIA_USE__ */': features.pinia
-        ? 'app.use(createPinia().use(persistedstate))'
-        : '',
-      '/* __ELEMENT_USE__ */': features.ui.includes('element')
-        ? `app.use(ElementPlus, { locale: zhCn })
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-  app.component(key, component)
-}`
-        : '',
-      '/* __VANT_USE__ */': features.ui.includes('vant')
-        ? 'app.use(Vant)'
-        : ''
-    }
-
-    function escapeRegExp (str) {
-      return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    }
-
-    for(const [placeholder, content] of Object.entries(replacements)) {
-      if(content) {
-        main = main.replace(placeholder, content)
-      } else {
-        const re = new RegExp(`^\\s*${escapeRegExp(placeholder)}\\s*$\\n?`, 'gm')
-        main = main.replace(re, '')
-      }
-    }
-
-    main = main.replace(/(\s*)const app = createApp\(App\)/, '\n\n$1const app = createApp(App)')
-    main = main.replace(/\n{3,}/g, '\n\n')
-
-    fs.writeFileSync(path.join(targetDir, `src/${mainFile}`), main)
-    fs.unlinkSync(mainTplPath)
-
-    // 7️⃣ 生成 package.json
-    const pkgTpl = path.join(targetDir, 'package.json.tpl')
-    if(fs.existsSync(pkgTpl)) {
-      let pkg = fs.readFileSync(pkgTpl, 'utf-8')
-
-      const optionalDeps = {}
-      if(features.router) optionalDeps['vue-router'] = '^5.0.3'
-      if(features.pinia) {
-        optionalDeps['pinia'] = '^3.0.4'
-        optionalDeps['pinia-plugin-persistedstate'] = '^4.7.1'
-      }
-      if(features.axios) optionalDeps['axios'] = '^1.13.6'
-      if(features.ui.includes('element')) {
-        optionalDeps['element-plus'] = '^2.13.5'
-        optionalDeps['@element-plus/icons-vue'] = '^2.3.2'
-      }
-      if(features.ui.includes('vant')) {
-        optionalDeps['vant'] = '^4.9.22'
-      }
-      // 增强插件依赖
-      if(extraPlugins.includes('vueuse')) optionalDeps['@vueuse/core'] = '^14.2.1'
-      if(extraPlugins.includes('dayjs')) optionalDeps['dayjs'] = '^1.11.20'
-      if(extraPlugins.includes('lodash')) optionalDeps['lodash'] = '^4.17.23'
-      if(extraPlugins.includes('tailwind')) {
-        optionalDeps['tailwindcss'] = '^4.2.2'
-        optionalDeps['@tailwindcss/postcss'] = '^4.2.2'
-        optionalDeps['postcss'] = '^8.5.8'
-      }
-      if(extraPlugins.includes('mitt')) optionalDeps['mitt'] = '^3.0.1'
-      if(enableHttps) optionalDeps['vite-plugin-mkcert'] = '^1.17.10'
-      if(autoRoute) optionalDeps['vite-plugin-pages'] = '^0.33.3'
-
-      let depsStr = ''
-      const keys = Object.keys(optionalDeps)
-      if(keys.length > 0) {
-        depsStr = ',\n' + keys.map(k => `    "${k}": "${optionalDeps[k]}"`).join(',\n')
-      }
-
-      pkg = pkg
-        .replace('__PROJECT_NAME__', projectName)
-        .replace('__OPTIONAL_DEP__', depsStr)
-
-      // ⭐ 新增逻辑
-      let pkgObj = JSON.parse(pkg)
-
-      if(pkgManager === 'pnpm' && features.ui.includes('vant')) {
-        pkgObj.pnpm = {
-          overrides: {
-            "@vant/use": "^1.0.0",
-            "@vant/popperjs": "^1.0.0"
-          }
-        }
-      }
-
-      pkg = JSON.stringify(pkgObj, null, 2)
-
-      fs.writeFileSync(path.join(targetDir, 'package.json'), pkg)
-      fs.unlinkSync(pkgTpl)
-    }
-
-    // 8️⃣ 配置 vite.config.js / vite.config.ts（自动路由 + HTTPS）
-    const viteConfigPath = path.join(
-      targetDir,
-      `vite.config.${language === 'ts' ? 'ts' : 'js'}`
-    )
-
-    if(fs.existsSync(viteConfigPath)) {
-      let viteConfig = fs.readFileSync(viteConfigPath, 'utf-8')
-
-      // ===== mkcert 插件 =====
-      if(enableHttps) {
-        if(!viteConfig.includes("vite-plugin-mkcert")) {
-          viteConfig = viteConfig.replace(
-            /(import .*?from .*?\n)/,
-            `$1import mkcert from 'vite-plugin-mkcert'\n`
-          )
-        }
-
-        if(!viteConfig.includes("mkcert(")) {
-          viteConfig = viteConfig.replace(
-            /plugins:\s*\[/,
-            `plugins: [
-    mkcert(),`
-          )
-        }
-      }
-
-      // ===== 自动路由 =====
-      if(autoRoute) {
-        if(!viteConfig.includes("import fs from 'fs'")) {
-          viteConfig = `import fs from 'fs'\n${viteConfig}`
-        }
-        if(!viteConfig.includes("import Pages from 'vite-plugin-pages'")) {
-          viteConfig = viteConfig.replace(
-            /(import .*?from .*?\n)/,
-            `$1import Pages from 'vite-plugin-pages'\n`
-          )
-        }
-        if(!viteConfig.includes("Pages({")) {
-          viteConfig = viteConfig.replace(
-            /plugins:\s*\[/,
-            `plugins: [
-    Pages({
-      dirs: 'src/views',
-      extensions: ['vue'],
-      exclude: ['**/_*.vue'],
-      async extendRoute(route) {
-        const componentPath = path.resolve(process.cwd(), route.component.slice(1))
-        const dirPath = path.dirname(componentPath)
-        const metaFile = path.resolve(dirPath, 'meta.json')
-        if(fs.existsSync(metaFile)) {
-          try {
-            const metaContent = fs.readFileSync(metaFile, 'utf-8')
-            const meta = JSON.parse(metaContent)
-            route.meta = { ...(route.meta || {}), ...meta }
-          } catch(err) {
-            console.warn(\`加载 \${metaFile} 失败:\`, err)
-          }
-        }
-        return { ...route }
-      }
-    }),`
-          )
-        }
-      }
-
-      fs.writeFileSync(viteConfigPath, viteConfig)
-    }
-    // 9️⃣ 替换 router/index.js
-    if(features.router) {
-      const routerIndexPath = path.join(targetDir, `src/router/index.${language === 'ts' ? 'ts' : 'js'}`)
-      if(autoRoute) {
-        fs.writeFileSync(
-          routerIndexPath,
-          `import { createRouter, createWebHistory } from 'vue-router'
-import routes from '~pages'
-
-routes.unshift({
-  path: '/',
-  redirect: '/home'
-})
-
-export default createRouter({
-  history: createWebHistory(),
-  routes
-})
-`
-        )
-      } else {
-        fs.writeFileSync(
-          routerIndexPath,
-          `import { createRouter, createWebHistory } from 'vue-router'
-
-const routes = [
-  {
-    path: '/',
-    component: () => import('@/views/home/index.vue')
-  }
-]
-
-export default createRouter({
-  history: createWebHistory(),
-  routes
-})
-`
-        )
-      }
-    }
-
-    // 1️⃣0️⃣ 安装依赖
-    console.log('📦 安装依赖中...')
-
-    let installCmd = ''
-
-    if(pkgManager === 'pnpm') {
-      installCmd = 'pnpm install'
-    } else {
-      installCmd = 'npm install'
-    }
-
-    execSync(installCmd, { cwd: targetDir, stdio: 'inherit' })
-
-    // 1️⃣1️⃣ 运行 dev
-    if(runDev) {
-      console.log('🚀 启动开发服务器...')
-      if(enableHttps) {
-        console.log('🔐 首次启用 HTTPS 会自动生成证书，请稍等...')
-      }
-      execSync(pkgCommands[pkgManager].dev, {
-        cwd: targetDir,
-        stdio: 'inherit'
-      })
-    } else {
+    // 启动 dev 或提示完成
+    if(runDev) runCmd(pkgCommands[pkgManager].dev, targetDir)
+    else {
       console.log(`\n✅ 项目创建完成`)
       console.log(`👉 cd ${projectName}`)
       console.log(`👉 ${pkgCommands[pkgManager].dev}`)
-      if(enableHttps) {
-        console.log('🔐 首次启用 HTTPS 会自动生成证书，请稍等...\n')
-      }
+      if(enableHttps) console.log('🔐 首次启用 HTTPS 会自动生成证书，请稍等...')
     }
   })()
-
-function detectPackageManager () {
-  const userAgent = process.env.npm_config_user_agent || ''
-
-  if(userAgent.startsWith('pnpm')) return 'pnpm'
-  if(userAgent.startsWith('npm')) return 'npm'
-
-  if(fs.existsSync('pnpm-lock.yaml')) return 'pnpm'
-
-  return 'npm'
-}
