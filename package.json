@@ -1,6 +1,6 @@
 {
   "name": "create-vite-vue",
-  "version": "1.8.0",
+  "version": "2.0.0",
   "description": "基于Vite+Vue3创建基础项目模板",
   "main": "index.js",
   "author": "YwaiX",
@@ -21,6 +21,13 @@
     "vue-router",
     "pinia",
     "axios"
+  ],
+  "files": [
+    "bin/",
+    "lib/",
+    "template/",
+    "package.json",
+    "README.md"
   ],
   "dependencies": {
     "prompts": "^2.4.2"
