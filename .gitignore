@@ -1,0 +1,23 @@
+# Node.js 相关
+node_modules/
+package-lock.json
+npm-debug.log*
+yarn-error.log*
+pnpm-lock.yaml
+
+# 编辑器配置
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# 临时文件
+dist/
+build/
+tmp/
+*.temp
+*.log
+
+# 其他
+*.bak
+*.swp
