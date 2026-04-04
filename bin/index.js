@@ -7,11 +7,10 @@ import { fileURLToPath } from 'url'
 import { parseExtraPlugins, parseFeatures } from '../lib/features.js'
 import { generateMainFile } from '../lib/mainFile.js'
 import { generatePackageJson } from '../lib/package.js'
+import { setupPlugins } from '../lib/plugins/index.js'
 import { askAutoRoute, askRunDev, chooseFeatures, chooseLanguage, getProjectName } from '../lib/prompts.js'
-import { configureRouter } from '../lib/router.js'
-import { appendTailwind, copyBaseTemplate, copyOptionalTemplates, updateIndexHtml } from '../lib/template.js'
+import { copyBaseTemplate, copyOptionalTemplates, updateIndexHtml } from '../lib/template.js'
 import { checkNodeVersion, detectPackageManager, runCmd } from '../lib/utils.js'
-import { configureVite } from '../lib/viteConfig.js'
 
 // ===================== 常量 =====================
 const requiredVersion = '22.19.0'
@@ -43,20 +42,21 @@ const pkgCommands = {
     // 模板文件处理
     copyBaseTemplate(language, targetDir, __dirname)
     updateIndexHtml(projectName, targetDir)
-    appendTailwind(extraPlugins, targetDir)
     copyOptionalTemplates(features, extraPlugins, language, targetDir, __dirname)
+
+    // 配置插件
+    setupPlugins(features, extraPlugins, {
+      language,
+      targetDir,
+      autoRoute,
+      enableHttps
+    })
 
     // 生成 main 文件
     await generateMainFile(features, extraPlugins, language, targetDir)
 
     // package.json
     generatePackageJson(projectName, features, extraPlugins, autoRoute, enableHttps, language, targetDir, pkgManager)
-
-    // 配置 vite
-    configureVite(language, autoRoute, enableHttps, targetDir)
-
-    // 配置 router
-    configureRouter(features.router, autoRoute, language, targetDir)
 
     // 安装依赖
     runCmd(pkgCommands[pkgManager].install, targetDir)
