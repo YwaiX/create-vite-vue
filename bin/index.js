@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url'
 
 // === 导入模块 ===
 import { cleanMainFile } from '../lib/cleanMain.js'
-import { parseExtraPlugins, parseFeatures } from '../lib/features.js'
+import { parsePlugins } from '../lib/features.js'
 import { generatePackageJson } from '../lib/package.js'
 import { setupPlugins } from '../lib/plugins/index.js'
 import { askAutoRoute, askRunDev, chooseFeatures, chooseLanguage, getProjectName } from '../lib/prompts.js'
@@ -32,13 +32,12 @@ const requiredVersion = '22.19.0'
     // 4. 选择功能
     const featureList = await chooseFeatures()
 
-    // 5. 解析功能
-    const features = parseFeatures(featureList)
-    const extraPlugins = parseExtraPlugins(featureList)
-    const enableHttps = featureList.includes('https') || false
+    // 5. 解析插件
+    const plugins = parsePlugins(featureList)
+    const enableHttps = plugins.https
 
     // 6. 询问自动路由
-    const autoRoute = await askAutoRoute(features.router)
+    const autoRoute = await askAutoRoute(plugins.router)
 
     // 7. 询问是否运行 dev
     const pkgManager = detectPackageManager()
@@ -55,7 +54,7 @@ const requiredVersion = '22.19.0'
     await updateIndexHtml(projectName, targetDir)
 
     // 10. 配置插件，并获取已使用的占位符
-    const unusedPlaceholders = await setupPlugins(features, extraPlugins, {
+    const unusedPlaceholders = await setupPlugins(plugins, {
       language,
       targetDir,
       autoRoute,
@@ -67,7 +66,7 @@ const requiredVersion = '22.19.0'
     await cleanMainFile(language, targetDir, unusedPlaceholders)
 
     // 12. 生成 package.json
-    await generatePackageJson(projectName, features, extraPlugins, autoRoute, enableHttps, language, targetDir, pkgManager)
+    await generatePackageJson(projectName, plugins, autoRoute, enableHttps, language, targetDir, pkgManager)
 
     // 13. 安装依赖
     console.log('\n📦 正在安装依赖...')
